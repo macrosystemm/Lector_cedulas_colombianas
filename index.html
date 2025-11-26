@@ -2,102 +2,43 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Escáner Cédula Colombiana PDF417</title>
+  <title>Prueba Cámara</title>
   <style>
-    body { font-family: Arial; text-align: center; padding: 20px; }
-    video { width: 90%; max-width: 500px; border: 2px solid #000; margin: 10px 0; }
-    #output { margin-top: 20px; text-align: left; max-width: 500px; margin-left: auto; margin-right: auto; }
+    video { width: 90%; max-width: 500px; border: 2px solid #000; }
   </style>
 </head>
 <body>
-
-<h2>Escáner PDF417 – Cédula Colombiana</h2>
+<h2>Prueba de Cámara</h2>
 <video id="video" autoplay playsinline></video>
-
-<div id="output"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.19.1/umd/index.min.js"></script>
 <script>
-document.addEventListener("DOMContentLoaded", async () => {
-
-  const video = document.getElementById("video");
-  const output = document.getElementById("output");
-  const codeReader = new ZXing.BrowserBarcodeReader(undefined, {
-    decodeHints: { POSSIBLE_FORMATS: [ZXing.BarcodeFormat.PDF_417] }
-  });
-
-  let ultimoCodigo = null;
-  let ultimoIntento = 0;
-  function throttle() {
-    const ahora = Date.now();
-    if (ahora - ultimoIntento < 500) return false; // 0.5s entre intentos
-    ultimoIntento = ahora;
-    return true;
-  }
+(async () => {
+  const video = document.getElementById('video');
 
   try {
-    // Iniciar cámara con buena resolución
+    // 1️⃣ Abrir cámara primero
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } }
+      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
     });
     video.srcObject = stream;
     await video.play();
 
-    // Decodificación continua
+    // 2️⃣ Pasar el video a ZXing
+    const codeReader = new ZXing.BrowserBarcodeReader(undefined, {
+      decodeHints: { POSSIBLE_FORMATS: [ZXing.BarcodeFormat.PDF_417] }
+    });
+
     codeReader.decodeFromVideoElement(video, (result, err) => {
-      if (!throttle()) return;
-
-      if (err && !(err instanceof ZXing.NotFoundException)) {
-        console.warn("Error al decodificar:", err);
-      }
-
-      if (result) {
-        const codigo = result.getText();
-        if (codigo !== ultimoCodigo) {
-          ultimoCodigo = codigo;
-          const datos = parseCedula(codigo);
-          mostrarDatos(datos);
-        }
-      }
+      if (err && !(err instanceof ZXing.NotFoundException)) console.warn(err);
+      if (result) console.log("Código leído:", result.getText());
     });
 
   } catch (e) {
-    alert("Error al iniciar cámara: " + e.message);
+    alert("No se pudo abrir la cámara: " + e.message);
     console.error(e);
   }
-
-  // Función para extraer datos de la cédula
-  function parseCedula(texto) {
-    // El formato estándar de PDF417 colombiano suele ser:
-    // Nombre1|Nombre2|Apellido1|Apellido2|Número|Sexo|RH|FechaNac|...
-    // Ajusta según la versión real de la cédula.
-    const partes = texto.split('@'); // PDF417 de cédula usa @ como separador
-    const datos = {
-      numero: partes[0] || "",
-      primerNombre: partes[1] || "",
-      segundoNombre: partes[2] || "",
-      primerApellido: partes[3] || "",
-      segundoApellido: partes[4] || "",
-      sexo: partes[5] || "",
-      rh: partes[6] || "",
-      fechaNacimiento: partes[7] || ""
-    };
-    return datos;
-  }
-
-  function mostrarDatos(datos) {
-    output.innerHTML = `
-      <strong>Número de cédula:</strong> ${datos.numero}<br>
-      <strong>Nombres:</strong> ${datos.primerNombre} ${datos.segundoNombre}<br>
-      <strong>Apellidos:</strong> ${datos.primerApellido} ${datos.segundoApellido}<br>
-      <strong>Sexo:</strong> ${datos.sexo}<br>
-      <strong>RH:</strong> ${datos.rh}<br>
-      <strong>Fecha de nacimiento:</strong> ${datos.fechaNacimiento}
-    `;
-  }
-
-});
+})();
 </script>
-
 </body>
 </html>
