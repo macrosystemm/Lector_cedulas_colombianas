@@ -2,72 +2,38 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Escáner PDF417 – Funcional</title>
-  <style>
-    body { font-family: Arial; padding: 20px; text-align: center; }
-    video { width: 90%; max-width: 500px; border: 2px solid #000; }
-  </style>
+  <title>Lector PDF417 Cédula</title>
+  <script src="https://unpkg.com/@zxing/library@latest"></script>
 </head>
 <body>
+  <h1>Escanear Cédula Colombiana (PDF417)</h1>
+  <video id="video" width="400" height="300" autoplay></video>
+  <p id="resultado">Esperando escaneo...</p>
 
-<h2>Escáner PDF417 – Cédula Colombiana</h2>
-<video id="video" autoplay playsinline></video>
+  <script>
+    const codeReader = new ZXing.BrowserPDF417Reader();
+    const videoElement = document.getElementById('video');
+    const resultado = document.getElementById('resultado');
 
-<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.19.1/umd/index.min.js"></script>
+    // Abrir cámara
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+      .then(stream => {
+        videoElement.srcObject = stream;
+        videoElement.play();
 
-<script>
-document.addEventListener("DOMContentLoaded", async () => {
-
-  const video = document.getElementById("video");
-
-  // Configuración para leer solo PDF417 (rápido)
-  const codeReader = new ZXing.BrowserBarcodeReader(undefined, {
-    decodeHints: {
-      POSSIBLE_FORMATS: [ ZXing.BarcodeFormat.PDF_417 ]
-    }
-  });
-
-  let ultimoCodigo = null;
-  let ultimoIntento = 0;
-
-  function throttle() {
-    const ahora = Date.now();
-    if (ahora - ultimoIntento < 200) return false;
-    ultimoIntento = ahora;
-    return true;
-  }
-
-  try {
-    // 🔥 Usamos NAVIGATOR primero sin reproducir, SOLO para obtener permisos
-    await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "environment" }
-    });
-
-    // 🔥 Luego ZXing abre la cámara por su cuenta (esto SÍ funciona)
-    codeReader.decodeFromVideoDevice(undefined, "video", (result, err) => {
-
-      if (!throttle()) return;
-
-      if (err && !(err instanceof ZXing.NotFoundException)) {
-        console.warn(err);
-      }
-
-      if (result) {
-        const codigo = result.getText();
-        if (codigo !== ultimoCodigo) {
-          ultimoCodigo = codigo;
-          alert("Código leído:\n" + codigo);
-        }
-      }
-    });
-
-  } catch (e) {
-    alert("Error al abrir cámara: " + e.message);
-    console.error(e);
-  }
-
-});
-</script>
-
+        // Escanear continuamente
+        codeReader.decodeFromVideoDevice(null, videoElement, (result, err) => {
+          if (result) {
+            resultado.textContent = "Datos decodificados: " + result.getText();
+          }
+          if (err && !(err instanceof ZXing.NotFoundException)) {
+            console.error(err);
+          }
+        });
+      })
+      .catch(err => {
+        console.error("Error al acceder a la cámara: ", err);
+      });
+  </script>
 </body>
 </html>
