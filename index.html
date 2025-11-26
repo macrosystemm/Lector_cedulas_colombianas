@@ -2,43 +2,43 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Prueba Cámara</title>
-  <style>
-    video { width: 90%; max-width: 500px; border: 2px solid #000; }
-  </style>
+  <title>Lector PDF417 Cédula</title>
+  <!-- Importa la librería ZXing desde un CDN -->
+  <script src="https://unpkg.com/@zxing/library@latest"></script>
 </head>
 <body>
-<h2>Prueba de Cámara</h2>
-<video id="video" autoplay playsinline></video>
+  <h1>Escanear Cédula Colombiana (PDF417)</h1>
 
-<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.19.1/umd/index.min.js"></script>
-<script>
-(async () => {
-  const video = document.getElementById('video');
+  <!-- Video para mostrar la cámara -->
+  <video id="video" width="400" height="300" autoplay></video>
+  <p id="resultado">Esperando escaneo...</p>
 
-  try {
-    // 1️⃣ Abrir cámara primero
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
-    });
-    video.srcObject = stream;
-    await video.play();
+  <script>
+    // Crear el lector PDF417
+    const codeReader = new ZXing.BrowserPDF417Reader();
+    const videoElement = document.getElementById('video');
+    const resultado = document.getElementById('resultado');
 
-    // 2️⃣ Pasar el video a ZXing
-    const codeReader = new ZXing.BrowserBarcodeReader(undefined, {
-      decodeHints: { POSSIBLE_FORMATS: [ZXing.BarcodeFormat.PDF_417] }
-    });
+    // Abrir la cámara
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+      .then(stream => {
+        videoElement.srcObject = stream;
+        videoElement.play();
 
-    codeReader.decodeFromVideoElement(video, (result, err) => {
-      if (err && !(err instanceof ZXing.NotFoundException)) console.warn(err);
-      if (result) console.log("Código leído:", result.getText());
-    });
-
-  } catch (e) {
-    alert("No se pudo abrir la cámara: " + e.message);
-    console.error(e);
-  }
-})();
-</script>
+        // Escanear continuamente
+        codeReader.decodeFromVideoDevice(null, videoElement, (result, err) => {
+          if (result) {
+            resultado.textContent = "Datos decodificados: " + result.getText();
+          }
+          if (err && !(err instanceof ZXing.NotFoundException)) {
+            console.error(err);
+          }
+        });
+      })
+      .catch(err => {
+        console.error("Error al acceder a la cámara: ", err);
+        resultado.textContent = "No se pudo abrir la cámara.";
+      });
+  </script>
 </body>
 </html>
