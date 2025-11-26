@@ -3,37 +3,43 @@
 <head>
   <meta charset="UTF-8">
   <title>Lector PDF417 Cédula</title>
-  <script src="https://unpkg.com/@zxing/library@latest"></script>
+  <!-- Incluye la librería pdf417-decoder-js desde un CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/pdf417-decoder-js/dist/pdf417-decoder.min.js"></script>
 </head>
 <body>
-  <h1>Escanear Cédula Colombiana (PDF417)</h1>
-  <video id="video" width="400" height="300" autoplay></video>
-  <p id="resultado">Esperando escaneo...</p>
+  <h1>Escanear Cédula Colombiana (PDF417) 2025</h1>
+
+  <!-- Subir imagen de la cédula -->
+  <input type="file" id="fileInput" accept="image/*">
+  <p id="resultado">Esperando imagen...</p>
 
   <script>
-    const codeReader = new ZXing.BrowserPDF417Reader();
-    const videoElement = document.getElementById('video');
     const resultado = document.getElementById('resultado');
 
-    // Abrir cámara
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-      .then(stream => {
-        videoElement.srcObject = stream;
-        videoElement.play();
+    document.getElementById('fileInput').addEventListener('change', async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
 
-        // Escanear continuamente
-        codeReader.decodeFromVideoDevice(null, videoElement, (result, err) => {
-          if (result) {
-            resultado.textContent = "Datos decodificados: " + result.getText();
+      const imgURL = URL.createObjectURL(file);
+      const img = new Image();
+      img.src = imgURL;
+
+      img.onload = () => {
+        try {
+          // Decodificar el PDF417
+          const decoded = PDF417.decode(img);
+          if (decoded && decoded.length > 0) {
+            resultado.textContent = "Datos decodificados: " + decoded[0].text;
+          } else {
+            resultado.textContent = "No se pudo leer el código PDF417.";
           }
-          if (err && !(err instanceof ZXing.NotFoundException)) {
-            console.error(err);
-          }
-        });
-      })
-      .catch(err => {
-        console.error("Error al acceder a la cámara: ", err);
-      });
+        } catch (err) {
+          resultado.textContent = "Error al decodificar.";
+          console.error(err);
+        }
+      };
+    });
   </script>
 </body>
 </html>
+
